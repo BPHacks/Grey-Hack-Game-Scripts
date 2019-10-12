@@ -1,0 +1,20 @@
+// intended to be used when starting a new game
+host = get_shell.host_computer
+
+host.create_folder(home_dir, "vulns")
+vulnsDir = home_dir + "/vulns"
+
+// These files are ideal for storing various types of vulnerabilities.
+vulnFiles = ["shells.txt", "passwd-change.txt", "computer-objs.txt", "folder-objs.txt"]
+for file in vulnFiles
+	host.touch(vulnsDir, file)
+end for
+
+// This creates a folder for storing all your source code in.
+host.create_folder(home_dir, "src")
+srcDir = home_dir + "/src"
+srcFiles = ["decipher.src", "secure.src", "scanlib.src", "unihack.src", "localunihack.src", "wipe.src", "bankprinter.src", "wifihack.src, harden.src"]
+for file in srcFiles
+	host.touch(srcDir, file)
+end for
+host.File(program_path).delete

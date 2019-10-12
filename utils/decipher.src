@@ -1,0 +1,79 @@
+host = get_shell.host_computer
+
+get_crypto = function()
+	crypto = include_lib("/lib/crypto.so")
+	if not crypto then
+		crypto = include_lib(host.current_path + "/crypto.so")
+		if not crypto then 
+			exit("Unable to load crypto.so")
+		end if
+	end if
+	
+	return crypto
+end function
+
+get_password = function(userPass)
+	cryptotools = get_crypto()
+	split = userPass.split(":")
+	if split.len != 2 then 
+		exit("Unable to decipher: " + userPass + " has incorrect syntax (expected a string similar to <b>root:7B24AFC8BC80E548D66C4E7FF72171C5</b>")
+	end if
+	
+	expectedLength = 32
+	if split[1].len != expectedLength then
+		exit("Password hash of " + userPass + " has incorrect length, expected " + expectedLength + ", got: " + split[1].len)
+	end if
+	
+	password = split[0] + " " + cryptotools.decipher(split[0], split[1])
+	return password
+end function
+
+get_program_name = function()
+	split = program_path.split("/")
+	progName = split[-1]
+	return progName
+end function
+
+check_usage = function(expectedParamsLen, usageString)
+	if params.len != expectedParamsLen or params[0] == "-h" or params[0] == "--help" then
+		exit("<b> Usage: " + get_program_name() + " " + usageString + "</b")
+	end if
+end function
+
+check_usage(1, "[user:pass string || file path]")
+
+input = host.File(params[0])
+
+if not input then
+	print("Parsing...")
+	input = params[0]
+	print(get_password(input))
+else
+	if not input.has_permission("r") then
+		exit("Nothing to decipher: permission denied when trying to read from the file.")
+	end if
+	
+	if input.is_binary then
+		exit("Nothing to decipher: was given a binary file.")
+	end if
+	
+	if input.is_folder then
+		exit("Nothing to decipher: was given a folder.")
+	end if
+	
+	if input.content.len == 0 then
+		exit("Nothing to decipher: file is empty.")
+	end if
+	
+	lines = input.content.split("\n")
+	userInfo = {}
+	print("Parsing " + lines.len + " user(s)...")
+	for line in lines
+		userInfo.push(get_password(line))
+	end for
+	// This is its own loop because deciphering passwords and then printing will spam a new progress bar for each user.
+	// Doing it this way instead will only show one progress bar that refills for each user, which is nicer.
+	for user in userInfo
+		print(user.key)
+	end for
+end if
